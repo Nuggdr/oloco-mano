@@ -17,9 +17,9 @@ const webhookHandler = async (req: NextApiRequest, res: NextApiResponse) => {
     if (type === 'payment') {
       try {
         // Obtém informações do pagamento pelo ID recebido
-        const paymentResponse = await mercadopago.payment.findById(data.id);
+        const paymentResponse = await (mercadopago as any).payment.findById(data.id);
         const status = paymentResponse.body.status;
-        
+
         // Atualiza ou insere o status no banco de dados
         await Payment.updateOne(
           { paymentId: data.id }, // Busca pelo ID do pagamento
