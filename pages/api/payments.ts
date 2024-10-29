@@ -78,11 +78,11 @@ const handlePayment = async (req: NextApiRequest, res: NextApiResponse) => {
       const mercadoPagoResponse = await mercadopago.preferences.create(preference);
       res.status(200).json({ link: mercadoPagoResponse.body.init_point });
     } catch (error) {
-      // Tratamento do erro
+      // Tratamento do erro sem usar any
       if (error instanceof Error) {
         console.error('Erro ao criar preferência de pagamento:', error.message);
-      } else if (typeof error === 'object' && error !== null) {
-        console.error('Erro ao criar preferência de pagamento:', (error as any).response?.data || error);
+      } else if (typeof error === 'object' && error !== null && 'response' in error) {
+        console.error('Erro ao criar preferência de pagamento:', (error as { response?: { data?: unknown } }).response?.data || error);
       } else {
         console.error('Erro inesperado:', error);
       }
