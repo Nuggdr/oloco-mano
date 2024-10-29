@@ -1,4 +1,3 @@
-// pages/api/payments.ts
 import { NextApiRequest, NextApiResponse } from 'next';
 import mercadopago from 'mercadopago';
 
@@ -7,7 +6,7 @@ mercadopago.configure({
   access_token: 'APP_USR-7757243395799799-101720-7dace157bdd88e3ed4eff645a686a947-820552196', // Insira seu Access Token
 });
 
-// Defina os planos
+// Definição dos planos
 const plans = [
   {
     id: 1,
@@ -43,7 +42,7 @@ const plans = [
 
 const handlePayment = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method === 'POST') {
-    const { planId } = req.body; // Removido 'username' pois não está sendo usado
+    const { planId } = req.body; // Recebe o ID do plano
 
     // Encontre o plano baseado no ID
     const plan = plans.find((p) => p.id === planId);
@@ -74,7 +73,7 @@ const handlePayment = async (req: NextApiRequest, res: NextApiResponse) => {
       const mercadoPagoResponse = await mercadopago.preferences.create(preference);
       res.status(200).json({ link: mercadoPagoResponse.body.init_point });
     } catch (error) {
-      console.error('Erro ao criar preferência de pagamento:', error);
+      console.error('Erro ao criar preferência de pagamento:', error.response?.data || error.message);
       res.status(500).json({ error: 'Erro ao processar o pagamento.' });
     }
   } else {
