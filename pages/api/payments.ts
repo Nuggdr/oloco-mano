@@ -1,53 +1,86 @@
+// pages/api/payments.ts
 import { NextApiRequest, NextApiResponse } from 'next';
-import dbConnect from '../../lib/dbConnect';
-import Payment from '../../models/Payment';
+import mercadopago from 'mercadopago';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  await dbConnect();
+// Configuração do Mercado Pago
+mercadopago.configure({
+  access_token: 'APP_USR-7757243395799799-101720-7dace157bdd88e3ed4eff645a686a947-820552196', // Insira seu Access Token
+});
 
+// Defina os planos
+const plans = [
+  {
+    id: 1,
+    title: 'Plano Horas',
+    price: '1.90', // ajuste para formato numérico com ponto
+    duration: '12 horas',
+    processor: 'AMD EPYC',
+    gpu: 'NVIDIA Tesla T4',
+    ram: '28 GB',
+    storage: '256 GB SSD',
+  },
+  {
+    id: 2,
+    title: 'Plano Semanal',
+    price: '27.99',
+    duration: 'semanal',
+    processor: 'AMD EPYC',
+    gpu: 'NVIDIA Tesla T4',
+    ram: '28 GB',
+    storage: '256 GB SSD',
+  },
+  {
+    id: 3,
+    title: 'Plano Mensal',
+    price: '69.99',
+    duration: 'mensal',
+    processor: 'AMD EPYC',
+    gpu: 'NVIDIA Tesla T4',
+    ram: '28 GB',
+    storage: '256 GB SSD',
+  },
+];
+
+const handlePayment = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method === 'POST') {
     const { planId, username } = req.body;
 
-    // Verifique se os campos obrigatórios estão presentes
-    if (!username || !planId) {
-      return res.status(400).json({ message: 'O campo username e planId são obrigatórios.' });
+    // Encontre o plano baseado no ID
+    const plan = plans.find((p) => p.id === planId);
+
+    if (!plan) {
+      return res.status(400).json({ error: 'Plano não encontrado.' });
     }
 
+    // Criação da preferência de pagamento
     try {
-      // Criação da preferência de pagamento no Mercado Pago
-      const mercadoPagoResponse = await fetch('https://api.mercadopago.com/checkout/preferences', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer APP_USR-7757243395799799-101720-7dace157bdd88e3ed4eff645a686a947-820552196`,
-          'Content-Type': 'application/json',
+      const preference = {
+        items: [
+          {
+            title: plan.title,
+            unit_price: parseFloat(plan.price), // Converte o preço para float
+            quantity: 1,
+          },
+        ],
+        back_urls: {
+          success: 'https://cyphercloud.store/payment-success', // URL de sucesso
+          failure: 'https://cyphercloud.store/payment-failure', // URL de falha
+          pending: 'https://cyphercloud.store/payment-pending', // URL de pendência
         },
-        body: JSON.stringify({
-          items: [{ title: `Plano ${planId}`, quantity: 1, unit_price: parseFloat(planId) }],
-          external_reference: `user_${username}_plan_${planId}`, // Referência única
-        }),
-      });
+        auto_return: 'approved',
+        notification_url: 'https://cyphercloud.store/api/mercado-pago-webhook', // URL do webhook
+      };
 
-      if (!mercadoPagoResponse.ok) {
-        throw new Error('Erro ao criar preferência de pagamento.');
-      }
-
-      const { id, init_point } = await mercadoPagoResponse.json();
-
-      // Salve o pagamento no banco de dados com `paymentId`
-      await Payment.create({
-        userId: username,
-        planId,
-        paymentId: id,
-        paymentLink: init_point,
-        status: 'pending',
-      });
-
-      res.status(200).json({ link: init_point });
+      const mercadoPagoResponse = await mercadopago.preferences.create(preference);
+      res.status(200).json({ link: mercadoPagoResponse.body.init_point });
     } catch (error) {
       console.error('Erro ao criar preferência de pagamento:', error);
-      res.status(500).json({ message: 'Erro ao criar preferência de pagamento.' });
+      res.status(500).json({ error: 'Erro ao processar o pagamento.' });
     }
   } else {
-    res.status(405).json({ message: 'Método não permitido' });
+    res.setHeader('Allow', ['POST']);
+    res.status(405).end(`Method ${req.method} Not Allowed`);
   }
-}
+};
+
+export default handlePayment;
