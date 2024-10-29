@@ -1,5 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import mercadopago from 'mercadopago';
+import dbConnect from '../../lib/dbConnect'; // Ajuste o caminho se necessário
+import Payment from '../../models/Payment'; // Ajuste o caminho do modelo de Payment
 
 // Configuração do Mercado Pago
 mercadopago.configure({
@@ -41,12 +43,14 @@ const plans = [
 ];
 
 const handlePayment = async (req: NextApiRequest, res: NextApiResponse) => {
-  if (req.method === 'POST') {
-    const { planId } = req.body;
+  await dbConnect(); // Conecta ao banco de dados
 
-    // Verifica se planId é um número
-    if (typeof planId !== 'number') {
-      return res.status(400).json({ error: 'ID do plano deve ser um número.' });
+  if (req.method === 'POST') {
+    const { planId, userId } = req.body; // Recebe o ID do plano e o ID do usuário
+
+    // Verifica se planId e userId são válidos
+    if (typeof planId !== 'number' || typeof userId !== 'string') {
+      return res.status(400).json({ error: 'ID do plano deve ser um número e o ID do usuário deve ser uma string.' });
     }
 
     // Encontre o plano baseado no ID
@@ -76,6 +80,17 @@ const handlePayment = async (req: NextApiRequest, res: NextApiResponse) => {
       };
 
       const mercadoPagoResponse = await mercadopago.preferences.create(preference);
+
+      // Salva o pagamento no banco de dados
+      const newPayment = new Payment({
+        userId: userId, // ID do usuário
+        planId: planId, // ID do plano
+        paymentLink: mercadoPagoResponse.body.init_point, // Link de pagamento
+        status: 'pending', // Status inicial do pagamento
+      });
+
+      await newPayment.save(); // Salva no banco de dados
+
       res.status(200).json({ link: mercadoPagoResponse.body.init_point });
     } catch (error) {
       // Tratamento do erro sem usar any
