@@ -7,6 +7,12 @@ mercadopago.configure({
   access_token: 'APP_USR-7757243395799799-101720-7dace157bdd88e3ed4eff645a686a947-820552196',
 });
 
+interface PaymentResponse {
+  body: {
+    status: string;
+  };
+}
+
 const webhookHandler = async (req: NextApiRequest, res: NextApiResponse) => {
   await dbConnect(); // Conecta ao MongoDB
 
@@ -17,9 +23,9 @@ const webhookHandler = async (req: NextApiRequest, res: NextApiResponse) => {
     if (type === 'payment') {
       try {
         // Obtém informações do pagamento pelo ID recebido
-        const paymentResponse = await (mercadopago as any).payment.findById(data.id);
+        const paymentResponse: PaymentResponse = await mercadopago.payment.findById(data.id);
         const status = paymentResponse.body.status;
-
+        
         // Atualiza ou insere o status no banco de dados
         await Payment.updateOne(
           { paymentId: data.id }, // Busca pelo ID do pagamento
