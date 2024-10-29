@@ -4,7 +4,7 @@ import mercadopago from 'mercadopago';
 
 // Configuração do Mercado Pago
 mercadopago.configure({
-  access_token: 'APP_USR-7757243395799799-101720-7dace157bdd88e3ed4eff645a686a947-820552196', // Insira seu Access Token
+  access_token: 'APP_USR-7555421413075086-101720-8a09af40ce7a699b5c60416b6d0cba85-820552196', // Insira seu Access Token
 });
 
 // Defina os planos
