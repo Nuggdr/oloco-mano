@@ -6,7 +6,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   await dbConnect();
 
   if (req.method === 'POST') {
-    const { planId } = req.body; // Removendo o username, caso não seja necessário
+    const { planId, username } = req.body; // Agora username está sendo desestruturado do corpo da requisição
 
     try {
       // Criação da preferência de pagamento no Mercado Pago
@@ -18,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
         body: JSON.stringify({
           items: [{ title: `Plano ${planId}`, quantity: 1, unit_price: parseFloat(planId) }],
-          external_reference: `user_${username}_plan_${planId}`, // Manter se for necessário
+          external_reference: `user_${username}_plan_${planId}`, // Agora o username está definido
           back_urls: {
             success: 'https://cyphercloud.store/pagamento/sucesso',
             failure: 'https://cyphercloud.store/pagamento/falha',
