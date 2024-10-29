@@ -4,7 +4,7 @@ import mercadopago from 'mercadopago';
 
 // Configuração do Mercado Pago
 mercadopago.configure({
-  access_token: 'APP_USR-7555421413075086-101720-8a09af40ce7a699b5c60416b6d0cba85-820552196', // Insira seu Access Token
+  access_token: 'APP_USR-7757243395799799-101720-7dace157bdd88e3ed4eff645a686a947-820552196', // Insira seu Access Token
 });
 
 // Defina os planos
@@ -12,7 +12,7 @@ const plans = [
   {
     id: 1,
     title: 'Plano Horas',
-    price: '1,90',
+    price: '1.90', // ajuste para formato numérico com ponto
     duration: '12 horas',
     processor: 'AMD EPYC',
     gpu: 'NVIDIA Tesla T4',
@@ -22,7 +22,7 @@ const plans = [
   {
     id: 2,
     title: 'Plano Semanal',
-    price: '27,99',
+    price: '27.99',
     duration: 'semanal',
     processor: 'AMD EPYC',
     gpu: 'NVIDIA Tesla T4',
@@ -32,7 +32,7 @@ const plans = [
   {
     id: 3,
     title: 'Plano Mensal',
-    price: '69,99',
+    price: '69.99',
     duration: 'mensal',
     processor: 'AMD EPYC',
     gpu: 'NVIDIA Tesla T4',
@@ -43,7 +43,7 @@ const plans = [
 
 const handlePayment = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method === 'POST') {
-    const { planId } = req.body; // Removi o 'username'
+    const { planId, username } = req.body;
 
     // Encontre o plano baseado no ID
     const plan = plans.find((p) => p.id === planId);
@@ -58,16 +58,17 @@ const handlePayment = async (req: NextApiRequest, res: NextApiResponse) => {
         items: [
           {
             title: plan.title,
-            unit_price: parseFloat(plan.price.replace(',', '.')), // Converte o preço para float
+            unit_price: parseFloat(plan.price), // Converte o preço para float
             quantity: 1,
           },
         ],
         back_urls: {
-          success: 'http://localhost:3000/payment-success', // URL de sucesso
-          failure: 'http://localhost:3000/payment-failure', // URL de falha
-          pending: 'http://localhost:3000/payment-pending', // URL de pendência
+          success: 'https://oloco-mano.vercel.app/payment-success', // URL de sucesso
+          failure: 'https://oloco-mano.vercel.app/payment-failure', // URL de falha
+          pending: 'https://oloco-mano.vercel.app/payment-pending', // URL de pendência
         },
         auto_return: 'approved',
+        notification_url: 'https://oloco-mano.vercel.app/api/webhook', // URL do webhook
       };
 
       const mercadoPagoResponse = await mercadopago.preferences.create(preference);
