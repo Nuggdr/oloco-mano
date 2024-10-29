@@ -8,6 +8,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'POST') {
     const { planId, username } = req.body;
 
+    // Verifique se os campos obrigatórios estão presentes
+    if (!username || !planId) {
+      return res.status(400).json({ message: 'O campo username e planId são obrigatórios.' });
+    }
+
     try {
       // Criação da preferência de pagamento no Mercado Pago
       const mercadoPagoResponse = await fetch('https://api.mercadopago.com/checkout/preferences', {
