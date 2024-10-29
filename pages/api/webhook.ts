@@ -10,6 +10,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (type === 'payment') {
       const paymentId = data.id;
+      console.log('ID do pagamento recebido:', paymentId);
 
       try {
         // Obtenha os detalhes do pagamento diretamente da API do Mercado Pago
@@ -20,17 +21,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
 
         if (!mercadoPagoResponse.ok) {
+          console.error('Erro ao obter detalhes do pagamento:', mercadoPagoResponse.statusText);
           return res.status(500).json({ message: 'Erro ao obter detalhes do pagamento.' });
         }
 
         const paymentData = await mercadoPagoResponse.json();
+        console.log('Dados do pagamento obtidos:', paymentData);
 
         // Atualize o status do pagamento no banco de dados
-        await Payment.updateOne(
+        const updateResult = await Payment.updateOne(
           { paymentLink: paymentData.external_reference },
           { status: paymentData.status }
         );
 
+        if (updateResult.modifiedCount === 0) {
+          console.warn('Nenhum pagamento atualizado no banco de dados.');
+          return res.status(404).json({ message: 'Pagamento não encontrado no banco de dados.' });
+        }
+
+        console.log('Status atualizado com sucesso no banco de dados.');
         return res.status(200).json({ message: 'Status atualizado com sucesso' });
       } catch (error) {
         console.error('Erro ao processar o webhook:', error);
