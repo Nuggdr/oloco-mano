@@ -55,7 +55,7 @@ const Planos = () => {
       setLoading(true);
 
       const plan = plans.find((p) => p.id === planId);
-      const expirationDate = new Date(); // Altere para 'const'
+      const expirationDate = new Date();
 
       if (plan?.duration === '12 horas') {
         expirationDate.setHours(expirationDate.getHours() + 12);
@@ -72,7 +72,7 @@ const Planos = () => {
         minute: '2-digit',
       });
 
-      const discordWebhookUrl = 'https://discord.com/api/webhooks/1294002400129974302/_mb9MGycInAQkQm7w_-eG6QXslh7hylpMjPFK_Vq4FL7Irt4MPDLiInHCh-LETqTdO4h'; 
+      const discordWebhookUrl = 'https://discord.com/api/webhooks/1294002400129974302/_mb9MGycInAQkQm7w_-eG6QXslh7hylpMjPFK_Vq4FL7Irt4MPDLiInHCh-LETqTdO4h';
       const message = {
         content: `O Usuário ${user} comprou o plano ${plan?.title}. Expira em: ${expirationFormatted}.`,
       };
@@ -86,7 +86,7 @@ const Planos = () => {
       const mercadoPagoResponse = await fetch('/api/payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId, username: user }),
+        body: JSON.stringify({ planId, userId: user }), // Ajustado para usar "userId"
       });
 
       if (mercadoPagoResponse.ok) {
