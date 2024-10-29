@@ -43,7 +43,7 @@ const plans = [
 
 const handlePayment = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method === 'POST') {
-    const { planId, username } = req.body;
+    const { planId } = req.body; // Removi o 'username'
 
     // Encontre o plano baseado no ID
     const plan = plans.find((p) => p.id === planId);
