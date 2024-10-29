@@ -55,7 +55,7 @@ const Planos = () => {
       setLoading(true);
 
       const plan = plans.find((p) => p.id === planId);
-      let expirationDate = new Date();
+      const expirationDate = new Date(); // Altere para 'const'
 
       if (plan?.duration === '12 horas') {
         expirationDate.setHours(expirationDate.getHours() + 12);
