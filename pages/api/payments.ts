@@ -11,7 +11,7 @@ const plans = [
   {
     id: 1,
     title: 'Plano Horas',
-    price: '1.90', // ajuste para formato numérico com ponto
+    price: '1.90',
     duration: '12 horas',
     processor: 'AMD EPYC',
     gpu: 'NVIDIA Tesla T4',
@@ -42,7 +42,12 @@ const plans = [
 
 const handlePayment = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method === 'POST') {
-    const { planId } = req.body; // Recebe o ID do plano
+    const { planId } = req.body;
+
+    // Verifica se planId é um número
+    if (typeof planId !== 'number') {
+      return res.status(400).json({ error: 'ID do plano deve ser um número.' });
+    }
 
     // Encontre o plano baseado no ID
     const plan = plans.find((p) => p.id === planId);
@@ -57,23 +62,30 @@ const handlePayment = async (req: NextApiRequest, res: NextApiResponse) => {
         items: [
           {
             title: plan.title,
-            unit_price: parseFloat(plan.price), // Converte o preço para float
+            unit_price: parseFloat(plan.price),
             quantity: 1,
           },
         ],
         back_urls: {
-          success: 'https://cyphercloud.store/payment-success', // URL de sucesso
-          failure: 'https://cyphercloud.store/payment-failure', // URL de falha
-          pending: 'https://cyphercloud.store/payment-pending', // URL de pendência
+          success: 'https://cyphercloud.store/payment-success',
+          failure: 'https://cyphercloud.store/payment-failure',
+          pending: 'https://cyphercloud.store/payment-pending',
         },
         auto_return: 'approved',
-        notification_url: 'https://cyphercloud.store/api/webhook', // URL do webhook
+        notification_url: 'https://cyphercloud.store/api/webhook',
       };
 
       const mercadoPagoResponse = await mercadopago.preferences.create(preference);
       res.status(200).json({ link: mercadoPagoResponse.body.init_point });
     } catch (error) {
-      console.error('Erro ao criar preferência de pagamento:', error.response?.data || error.message);
+      // Tratamento do erro
+      if (error instanceof Error) {
+        console.error('Erro ao criar preferência de pagamento:', error.message);
+      } else if (typeof error === 'object' && error !== null) {
+        console.error('Erro ao criar preferência de pagamento:', (error as any).response?.data || error);
+      } else {
+        console.error('Erro inesperado:', error);
+      }
       res.status(500).json({ error: 'Erro ao processar o pagamento.' });
     }
   } else {
