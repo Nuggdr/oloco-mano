@@ -6,7 +6,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   await dbConnect();
 
   if (req.method === 'POST') {
-    const { planId, username } = req.body; // Agora username está sendo desestruturado do corpo da requisição
+    const { planId, userId } = req.body; // Mudou username para userId
 
     try {
       // Criação da preferência de pagamento no Mercado Pago
@@ -18,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
         body: JSON.stringify({
           items: [{ title: `Plano ${planId}`, quantity: 1, unit_price: parseFloat(planId) }],
-          external_reference: `user_${username}_plan_${planId}`, // Agora o username está definido
+          external_reference: `user_${userId}_plan_${planId}`, // Mudou username para userId
           back_urls: {
             success: 'https://cyphercloud.store/pagamento/sucesso',
             failure: 'https://cyphercloud.store/pagamento/falha',
@@ -36,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Salve o pagamento no banco de dados com `paymentId`
       await Payment.create({
-        userId: username, // Certifique-se de passar o username como userId se necessário
+        userId, // Certifique-se de passar userId corretamente
         planId,
         paymentId: id,
         paymentLink: init_point,
