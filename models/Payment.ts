@@ -1,14 +1,22 @@
-// models/Payment.ts
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose from 'mongoose';
 
-interface IPayment extends Document {
-  paymentId: string;
-  status: string;
-}
-
-const PaymentSchema: Schema = new Schema({
-  paymentId: { type: String, required: true, unique: true },
-  status: { type: String, required: true },
+const PaymentSchema = new mongoose.Schema({
+  userId: {
+    type: String,
+    required: true,
+  },
+  planId: {
+    type: Number,
+    required: true,
+  },
+  paymentLink: {
+    type: String,
+    required: true,
+  },
+  status: {
+    type: String,
+    default: 'pending',
+  },
 });
 
-export default mongoose.models.Payment || mongoose.model<IPayment>('Payment', PaymentSchema);
+export default mongoose.models.Payment || mongoose.model('Payment', PaymentSchema);
