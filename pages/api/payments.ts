@@ -63,12 +63,12 @@ const handlePayment = async (req: NextApiRequest, res: NextApiResponse) => {
           },
         ],
         back_urls: {
-          success: 'https://oloco-mano.vercel.app/payment-success', // URL de sucesso
-          failure: 'https://oloco-mano.vercel.app/payment-failure', // URL de falha
-          pending: 'https://oloco-mano.vercel.app/payment-pending', // URL de pendência
+          success: 'https://cyphercloud.store/payment-success', // URL de sucesso
+          failure: 'https://cyphercloud.store/payment-failure', // URL de falha
+          pending: 'https://cyphercloud.store/payment-pending', // URL de pendência
         },
         auto_return: 'approved',
-        notification_url: 'https://oloco-mano.vercel.app/api/webhook', // URL do webhook
+        notification_url: 'https://cyphercloud.store/api/webhook', // URL do webhook
       };
 
       const mercadoPagoResponse = await mercadopago.preferences.create(preference);
