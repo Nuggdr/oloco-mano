@@ -1,50 +1,45 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import mercadopago from 'mercadopago';
-import dbConnect from '../../lib/dbConnect'; // Função de conexão com o MongoDB
-import Payment from '../../models/Payment'; // Modelo do pagamento
+import dbConnect from '../../lib/dbConnect';
+import Payment from '../../models/Payment';
 
-mercadopago.configure({
-  access_token: 'APP_USR-7757243395799799-101720-7dace157bdd88e3ed4eff645a686a947-820552196',
-});
-
-interface PaymentResponse {
-  body: {
-    status: string;
-  };
-}
-
-const webhookHandler = async (req: NextApiRequest, res: NextApiResponse) => {
-  await dbConnect(); // Conecta ao MongoDB
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  await dbConnect();
 
   if (req.method === 'POST') {
     const { type, data } = req.body;
 
-    // Verifica se é notificação de pagamento
     if (type === 'payment') {
+      const paymentId = data.id;
+
       try {
-        // Obtém informações do pagamento pelo ID recebido
-        const paymentResponse: PaymentResponse = await mercadopago.payment.findById(data.id);
-        const status = paymentResponse.body.status;
-        
-        // Atualiza ou insere o status no banco de dados
+        // Obtenha os detalhes do pagamento diretamente da API do Mercado Pago
+        const mercadoPagoResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+          headers: {
+            Authorization: `Bearer APP_USR-7757243395799799-101720-7dace157bdd88e3ed4eff645a686a947-820552196`,
+          },
+        });
+
+        if (!mercadoPagoResponse.ok) {
+          return res.status(500).json({ message: 'Erro ao obter detalhes do pagamento.' });
+        }
+
+        const paymentData = await mercadoPagoResponse.json();
+
+        // Atualize o status do pagamento no banco de dados
         await Payment.updateOne(
-          { paymentId: data.id }, // Busca pelo ID do pagamento
-          { status },              // Atualiza o status
-          { upsert: true }         // Insere caso não exista
+          { paymentLink: paymentData.external_reference },
+          { status: paymentData.status }
         );
 
-        res.status(200).json({ message: 'Pagamento processado com sucesso', status });
+        return res.status(200).json({ message: 'Status atualizado com sucesso' });
       } catch (error) {
-        console.error('Erro ao verificar pagamento:', error);
-        res.status(500).json({ error: 'Erro ao verificar pagamento.' });
+        console.error('Erro ao processar o webhook:', error);
+        return res.status(500).json({ message: 'Erro interno ao processar o webhook.' });
       }
     } else {
-      res.status(400).json({ error: 'Tipo de notificação desconhecido.' });
+      return res.status(400).json({ message: 'Tipo de evento desconhecido' });
     }
   } else {
-    res.setHeader('Allow', ['POST']);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
+    return res.status(405).json({ message: 'Método não permitido' });
   }
-};
-
-export default webhookHandler;
+}
