@@ -75,7 +75,7 @@ const handlePayment = async (req: NextApiRequest, res: NextApiResponse) => {
       
       // Responde com o link de pagamento
       res.status(200).json({ link: mercadoPagoResponse.body.init_point });
-    } catch (error: any) { // Adicione o tipo 'any' ao erro
+    } catch (error: any) { // Definindo o tipo do erro como any
       // Melhora a mensagem de erro
       const errorMessage = error.response?.data || error.message;
       console.error('Erro ao criar preferência de pagamento:', errorMessage);
