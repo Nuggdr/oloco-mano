@@ -1,5 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import mercadopago from 'mercadopago';
+import dbConnect from '../../lib/dbConnect'; // Importa sua função de conexão ao banco
+import Payment from '../../models/Payment'; // Importa o modelo de pagamento
 
 // Configuração do Mercado Pago
 mercadopago.configure({
@@ -11,75 +13,66 @@ const plans = [
   {
     id: 1,
     title: 'Plano Horas',
-    price: 1.90, // ajuste para formato numérico
-    duration: '12 horas',
-    processor: 'AMD EPYC',
-    gpu: 'NVIDIA Tesla T4',
-    ram: '28 GB',
-    storage: '256 GB SSD',
+    price: 1.90,
   },
   {
     id: 2,
     title: 'Plano Semanal',
     price: 27.99,
-    duration: 'semanal',
-    processor: 'AMD EPYC',
-    gpu: 'NVIDIA Tesla T4',
-    ram: '28 GB',
-    storage: '256 GB SSD',
   },
   {
     id: 3,
     title: 'Plano Mensal',
     price: 69.99,
-    duration: 'mensal',
-    processor: 'AMD EPYC',
-    gpu: 'NVIDIA Tesla T4',
-    ram: '28 GB',
-    storage: '256 GB SSD',
   },
 ];
 
 const handlePayment = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method === 'POST') {
-    const { planId } = req.body; // Recebe o ID do plano
+    const { planId, userId } = req.body; // Recebe o ID do plano e o ID do usuário
 
-    // Encontre o plano baseado no ID
     const plan = plans.find((p) => p.id === planId);
 
     if (!plan) {
       return res.status(400).json({ error: 'Plano não encontrado.' });
     }
 
-    // Criação da preferência de pagamento
     try {
+      await dbConnect(); // Conecta ao banco de dados
+
       const preference = {
         items: [
           {
             title: plan.title,
-            unit_price: plan.price, // Preço já é numérico
+            unit_price: plan.price,
             quantity: 1,
           },
         ],
         back_urls: {
-          success: 'https://cyphercloud.store/payment-success', // URL de sucesso
-          failure: 'https://cyphercloud.store/payment-failure', // URL de falha
-          pending: 'https://cyphercloud.store/payment-pending', // URL de pendência
+          success: 'https://cyphercloud.store/payment-success',
+          failure: 'https://cyphercloud.store/payment-failure',
+          pending: 'https://cyphercloud.store/payment-pending',
         },
         auto_return: 'approved',
-        notification_url: 'https://cyphercloud.store/api/webhook', // URL do webhook
+        notification_url: 'https://cyphercloud.store/api/webhook',
       };
 
-      // Criação da preferência
       const mercadoPagoResponse = await mercadopago.preferences.create(preference);
-      
-      // Responde com o link de pagamento
-      res.status(200).json({ link: mercadoPagoResponse.body.init_point });
-    } catch (error: unknown) { // Usando unknown
-      let errorMessage = 'Erro ao processar o pagamento.';
 
+      // Salva o pagamento no banco de dados
+      const paymentData = new Payment({
+        userId, // Armazena o ID do usuário
+        planId,
+        status: 'pending', // Status inicial
+        amount: plan.price, // Valor do plano
+      });
+
+      await paymentData.save(); // Salva os dados no MongoDB
+
+      res.status(200).json({ link: mercadoPagoResponse.body.init_point });
+    } catch (error: unknown) {
+      let errorMessage = 'Erro ao processar o pagamento.';
       if (error instanceof Error) {
-        // Se o erro for uma instância de Error, obtenha a mensagem
         errorMessage = error.message;
       }
 
