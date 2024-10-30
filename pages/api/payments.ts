@@ -50,12 +50,12 @@ const handlePayment = async (req: NextApiRequest, res: NextApiResponse) => {
           },
         ],
         back_urls: {
-          success: 'https://cyphercloud.store/payment-success',
-          failure: 'https://cyphercloud.store/payment-failure',
-          pending: 'https://cyphercloud.store/payment-pending',
+          success: 'https://www.cyphercloud.store/api/webhook',
+          failure: 'https://www.cyphercloud.store/api/webhook',
+          pending: 'https://www.cyphercloud.store/api/webhook',
         },
         auto_return: 'approved',
-        notification_url: 'https://cyphercloud.store/api/webhook',
+        notification_url: 'https://www.cyphercloud.store/api/webhook',
       };
 
       // Criar preferência no Mercado Pago
