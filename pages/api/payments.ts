@@ -5,7 +5,7 @@ import Payment from '../../models/Payment'; // Ajuste o caminho conforme necess√
 
 // Configurar Mercado Pago
 mercadoPago.configure({
-  access_token: 'TEST-7757243395799799-101720-d13b0e62c96962384b36b29f4c14c5e9-820552196',
+  access_token: 'APP_USR-7757243395799799-101720-7dace157bdd88e3ed4eff645a686a947-820552196',
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
