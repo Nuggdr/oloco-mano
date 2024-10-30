@@ -75,11 +75,16 @@ const handlePayment = async (req: NextApiRequest, res: NextApiResponse) => {
       
       // Responde com o link de pagamento
       res.status(200).json({ link: mercadoPagoResponse.body.init_point });
-    } catch (error: any) { // Definindo o tipo do erro como any
-      // Melhora a mensagem de erro
-      const errorMessage = error.response?.data || error.message;
+    } catch (error: unknown) { // Usando unknown
+      let errorMessage = 'Erro ao processar o pagamento.';
+
+      if (error instanceof Error) {
+        // Se o erro for uma instância de Error, obtenha a mensagem
+        errorMessage = error.message;
+      }
+
       console.error('Erro ao criar preferência de pagamento:', errorMessage);
-      res.status(500).json({ error: 'Erro ao processar o pagamento.', details: errorMessage });
+      res.status(500).json({ error: errorMessage });
     }
   } else {
     res.setHeader('Allow', ['POST']);
