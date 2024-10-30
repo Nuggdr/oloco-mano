@@ -1,60 +1,90 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import mercadoPago from 'mercadopago';
-import dbConnect from '../../lib/dbConnect'; // Ajuste o caminho conforme necessário
-import Payment from '../../models/Payment'; // Ajuste o caminho conforme necessário
+import mercadopago from 'mercadopago';
 
-// Configurar Mercado Pago
-mercadoPago.configure({
-  access_token: 'APP_USR-7757243395799799-101720-7dace157bdd88e3ed4eff645a686a947-820552196',
+// Configuração do Mercado Pago
+mercadopago.configure({
+  access_token: 'APP_USR-7757243395799799-101720-7dace157bdd88e3ed4eff645a686a947-820552196', // Insira seu Access Token
 });
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+// Definição dos planos
+const plans = [
+  {
+    id: 1,
+    title: 'Plano Horas',
+    price: 1.90, // ajuste para formato numérico
+    duration: '12 horas',
+    processor: 'AMD EPYC',
+    gpu: 'NVIDIA Tesla T4',
+    ram: '28 GB',
+    storage: '256 GB SSD',
+  },
+  {
+    id: 2,
+    title: 'Plano Semanal',
+    price: 27.99,
+    duration: 'semanal',
+    processor: 'AMD EPYC',
+    gpu: 'NVIDIA Tesla T4',
+    ram: '28 GB',
+    storage: '256 GB SSD',
+  },
+  {
+    id: 3,
+    title: 'Plano Mensal',
+    price: 69.99,
+    duration: 'mensal',
+    processor: 'AMD EPYC',
+    gpu: 'NVIDIA Tesla T4',
+    ram: '28 GB',
+    storage: '256 GB SSD',
+  },
+];
+
+const handlePayment = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method === 'POST') {
-    const { userId, planId } = req.body;
+    const { planId } = req.body; // Recebe o ID do plano
 
+    // Encontre o plano baseado no ID
+    const plan = plans.find((p) => p.id === planId);
+
+    if (!plan) {
+      return res.status(400).json({ error: 'Plano não encontrado.' });
+    }
+
+    // Criação da preferência de pagamento
     try {
-      await dbConnect(); // Conectar ao MongoDB
-
-      // Criar a preferência de pagamento
-      const mercadoPagoResponse = await mercadoPago.preferences.create({
+      const preference = {
         items: [
           {
-            title: `Plano ${planId}`,
+            title: plan.title,
+            unit_price: plan.price, // Preço já é numérico
             quantity: 1,
-            unit_price: parseFloat(planId), // Ajuste para pegar o preço real do plano
           },
         ],
         back_urls: {
-          success: 'https://cyphercloud.store/api/payment-sucesso',
-          failure: 'https://cyphercloud.store/api/payment-failure',
-          pending: 'https://cyphercloud.store/api/payment-panding',
+          success: 'https://cyphercloud.store/payment-success', // URL de sucesso
+          failure: 'https://cyphercloud.store/payment-failure', // URL de falha
+          pending: 'https://cyphercloud.store/payment-pending', // URL de pendência
         },
         auto_return: 'approved',
-      });
+        notification_url: 'https://cyphercloud.store/api/webhook', // URL do webhook
+      };
 
-      const { id, init_point } = mercadoPagoResponse.body;
-
-      // Verifique se o paymentId é válido
-      if (!id) {
-        throw new Error('Pagamento não foi criado corretamente. ID é nulo.');
-      }
-
-      // Salve o pagamento no banco de dados com `paymentId`
-      const newPayment = await Payment.create({
-        userId,
-        planId,
-        paymentId: id, // O id deve ser válido
-        paymentLink: init_point,
-        status: 'pending',
-      });
-
-      res.status(201).json(newPayment);
+      // Criação da preferência
+      const mercadoPagoResponse = await mercadopago.preferences.create(preference);
+      
+      // Responde com o link de pagamento
+      res.status(200).json({ link: mercadoPagoResponse.body.init_point });
     } catch (error) {
-      console.error('Erro ao criar preferência de pagamento:', error);
-      res.status(500).json({ message: 'Erro ao criar preferência de pagamento', error: error.message });
+      // Melhora a mensagem de erro
+      const errorMessage = error.response?.data || error.message;
+      console.error('Erro ao criar preferência de pagamento:', errorMessage);
+      res.status(500).json({ error: 'Erro ao processar o pagamento.', details: errorMessage });
     }
   } else {
     res.setHeader('Allow', ['POST']);
     res.status(405).end(`Method ${req.method} Not Allowed`);
   }
-}
+};
+
+export default handlePayment;
