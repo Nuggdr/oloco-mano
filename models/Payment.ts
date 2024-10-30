@@ -1,31 +1,20 @@
-import mongoose from 'mongoose';
+// models/Payment.ts
+import mongoose, { Schema, Document } from 'mongoose';
 
-const PaymentSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: true,
-    ref: 'User', // Refira-se ao modelo do usuário
-  },
-  planId: {
-    type: String,
-    required: true,
-  },
-  paymentId: {
-    type: String,
-    required: true,
-    unique: true, // Garanta que não haja duplicatas
-  },
-  paymentLink: {
-    type: String,
-    required: true,
-  },
-  status: {
-    type: String,
-    enum: ['pending', 'approved', 'rejected'],
-    default: 'pending',
-  },
-}, {
-  timestamps: true,
+export interface IPayment extends Document {
+  userId: string; // ID do usuário associado ao pagamento
+  planId: number; // ID do plano
+  status: string; // Status do pagamento
+  date: Date; // Data do pagamento
+  amount: number; // Valor do pagamento
+}
+
+const PaymentSchema: Schema = new Schema({
+  userId: { type: String, required: true },
+  planId: { type: Number, required: true },
+  status: { type: String, required: true },
+  date: { type: Date, default: Date.now },
+  amount: { type: Number, required: true },
 });
 
-export default mongoose.models.Payment || mongoose.model('Payment', PaymentSchema);
+export default mongoose.models.Payment || mongoose.model<IPayment>('Payment', PaymentSchema);
