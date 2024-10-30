@@ -1,37 +1,35 @@
-// pages/api/webhook.ts
 import { NextApiRequest, NextApiResponse } from 'next';
-import dbConnect from '../../lib/dbConnect';
-import Payment from '../../models/Payment'; // Ajuste o caminho conforme necessário
+import dbConnect from '../../lib/dbConnect'; // Importa sua função de conexão ao banco
+import Payment from '../../models/Payment'; // Importa o modelo de pagamento
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+const handleWebhook = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method === 'POST') {
     try {
-      await dbConnect(); // Conectar ao MongoDB
-      
-      // Obter os dados do pagamento do corpo da requisição
-      const paymentData = req.body;
+      await dbConnect(); // Conecta ao banco de dados
 
-      // Verifique o status do pagamento
-      if (paymentData.type === 'payment') {
-        const paymentId = paymentData.data.id;
-        const paymentStatus = paymentData.data.status;
+      // Os dados do pagamento enviados pelo Mercado Pago
+      const { id, status } = req.body; // 'id' é o paymentId e 'status' é o novo status do pagamento
 
-        // Atualize o status do pagamento no banco de dados
-        await Payment.updateOne(
-          { paymentId },
-          { status: paymentStatus }
-        );
+      // Encontre o pagamento no banco de dados
+      const payment = await Payment.findOne({ paymentId: id });
 
-        res.status(200).json({ message: 'Status do pagamento atualizado com sucesso' });
-      } else {
-        res.status(400).json({ message: 'Tipo de evento não suportado' });
+      if (!payment) {
+        return res.status(404).json({ error: 'Pagamento não encontrado.' });
       }
-    } catch (error) {
+
+      // Atualize o status do pagamento
+      payment.status = status; // Atualiza o status do pagamento
+      await payment.save(); // Salva as alterações
+
+      res.status(200).json({ message: 'Pagamento atualizado com sucesso.' });
+    } catch (error: unknown) {
       console.error('Erro ao processar webhook:', error);
-      res.status(500).json({ message: 'Erro interno do servidor' });
+      res.status(500).json({ error: 'Erro interno do servidor.' });
     }
   } else {
     res.setHeader('Allow', ['POST']);
     res.status(405).end(`Method ${req.method} Not Allowed`);
   }
-}
+};
+
+export default handleWebhook;
