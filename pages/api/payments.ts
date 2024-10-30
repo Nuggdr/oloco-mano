@@ -40,6 +40,7 @@ const handlePayment = async (req: NextApiRequest, res: NextApiResponse) => {
     try {
       await dbConnect(); // Conecta ao banco de dados
 
+      // Criação da preferência de pagamento
       const preference = {
         items: [
           {
@@ -57,18 +58,21 @@ const handlePayment = async (req: NextApiRequest, res: NextApiResponse) => {
         notification_url: 'https://cyphercloud.store/api/webhook',
       };
 
+      // Criar preferência no Mercado Pago
       const mercadoPagoResponse = await mercadopago.preferences.create(preference);
 
-      // Salva o pagamento no banco de dados
+      // Salva o pagamento no banco de dados, incluindo o paymentId
       const paymentData = new Payment({
         userId, // Armazena o ID do usuário
         planId,
+        paymentId: mercadoPagoResponse.body.id, // Adiciona o paymentId retornado
         status: 'pending', // Status inicial
         amount: plan.price, // Valor do plano
       });
 
       await paymentData.save(); // Salva os dados no MongoDB
 
+      // Retorna o link para a inicialização do pagamento
       res.status(200).json({ link: mercadoPagoResponse.body.init_point });
     } catch (error: unknown) {
       let errorMessage = 'Erro ao processar o pagamento.';
