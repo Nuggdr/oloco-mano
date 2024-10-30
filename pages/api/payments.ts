@@ -1,54 +1,60 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import dbConnect from '../../lib/dbConnect';
-import Payment from '../../models/Payment';
+import mercadoPago from 'mercadopago';
+import dbConnect from '../../lib/dbConnect'; // Ajuste o caminho conforme necessário
+import Payment from '../../models/Payment'; // Ajuste o caminho conforme necessário
+
+// Configurar Mercado Pago
+mercadoPago.configure({
+  access_token: 'TEST-7757243395799799-101720-d13b0e62c96962384b36b29f4c14c5e9-820552196',
+});
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  await dbConnect();
-
   if (req.method === 'POST') {
-    const { planId, userId } = req.body; // Mudou username para userId
+    const { userId, planId } = req.body;
 
     try {
-      // Criação da preferência de pagamento no Mercado Pago
-      const mercadoPagoResponse = await fetch('https://api.mercadopago.com/checkout/preferences', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer APP_USR-7757243395799799-101720-7dace157bdd88e3ed4eff645a686a947-820552196`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          items: [{ title: `Plano ${planId}`, quantity: 1, unit_price: parseFloat(planId) }],
-          external_reference: `user_${userId}_plan_${planId}`, // Mudou username para userId
-          back_urls: {
-            success: 'https://cyphercloud.store/pagamento/sucesso',
-            failure: 'https://cyphercloud.store/pagamento/falha',
-            pending: 'https://cyphercloud.store/pagamento/pendente',
+      await dbConnect(); // Conectar ao MongoDB
+
+      // Criar a preferência de pagamento
+      const mercadoPagoResponse = await mercadoPago.preferences.create({
+        items: [
+          {
+            title: `Plano ${planId}`,
+            quantity: 1,
+            unit_price: parseFloat(planId), // Ajuste para pegar o preço real do plano
           },
-          auto_return: 'approved',
-        }),
+        ],
+        back_urls: {
+          success: 'https://cyphercloud.store/api/payment-sucesso',
+          failure: 'https://cyphercloud.store/api/payment-failure',
+          pending: 'https://cyphercloud.store/api/payment-panding',
+        },
+        auto_return: 'approved',
       });
 
-      if (!mercadoPagoResponse.ok) {
-        throw new Error('Erro ao criar preferência de pagamento.');
+      const { id, init_point } = mercadoPagoResponse.body;
+
+      // Verifique se o paymentId é válido
+      if (!id) {
+        throw new Error('Pagamento não foi criado corretamente. ID é nulo.');
       }
 
-      const { id, init_point } = await mercadoPagoResponse.json();
-
       // Salve o pagamento no banco de dados com `paymentId`
-      await Payment.create({
-        userId, // Certifique-se de passar userId corretamente
+      const newPayment = await Payment.create({
+        userId,
         planId,
-        paymentId: id,
+        paymentId: id, // O id deve ser válido
         paymentLink: init_point,
         status: 'pending',
       });
 
-      res.status(200).json({ link: init_point });
+      res.status(201).json(newPayment);
     } catch (error) {
       console.error('Erro ao criar preferência de pagamento:', error);
-      res.status(500).json({ message: 'Erro ao criar preferência de pagamento.' });
+      res.status(500).json({ message: 'Erro ao criar preferência de pagamento', error: error.message });
     }
   } else {
-    res.status(405).json({ message: 'Método não permitido.' });
+    res.setHeader('Allow', ['POST']);
+    res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }
